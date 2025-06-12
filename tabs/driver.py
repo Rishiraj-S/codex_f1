@@ -24,13 +24,18 @@ def render() -> None:
     st.title("Driver Lap Time Performance")
 
     years = list(range(2018, datetime.date.today().year + 1))
-    year = st.selectbox("Year", years, index=len(years) - 1)
+    year = st.selectbox(
+        "Year",
+        years,
+        index=len(years) - 1,
+        key="driver_year",
+    )
 
     schedule = fastf1.get_event_schedule(year, include_testing=False)
     events = schedule["EventName"].tolist()
 
     drivers = _get_drivers(year, events[0]) if events else []
-    driver = st.selectbox("Driver", drivers)
+    driver = st.selectbox("Driver", drivers, key="driver_driver")
 
     races = st.multiselect("Races", events, default=events[:1])
 

@@ -14,7 +14,12 @@ def render() -> None:
     st.title("Season Team Points")
 
     years = list(range(2018, datetime.date.today().year + 1))
-    year = st.selectbox("Year", years, index=len(years) - 1)
+    year = st.selectbox(
+        "Year",
+        years,
+        index=len(years) - 1,
+        key="season_year",
+    )
 
     fig = team_points_chart(year)
     st.plotly_chart(fig, use_container_width=True)
