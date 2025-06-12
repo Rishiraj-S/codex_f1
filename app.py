@@ -2,11 +2,13 @@
 
 import fastf1
 import streamlit as st
+from pathlib import Path
 from tabs import circuit, driver, season, telemetry
 
-# Enable on-disk caching for FastF1. This significantly speeds up repeated data
-# access by storing session data locally. The directory will be created if it
-# does not already exist.
+# Ensure the cache directory exists, then enable on-disk caching for FastF1.
+# This significantly speeds up repeated data access by storing session data
+# locally.
+Path("cache").mkdir(parents=True, exist_ok=True)
 fastf1.Cache.enable_cache("cache")
 
 def main():
