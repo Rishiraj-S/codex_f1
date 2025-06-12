@@ -1,25 +1,33 @@
 """Entry point for the Streamlit F1 dashboard using FastF1."""
 
+import fastf1
 import streamlit as st
-from tabs import overview, qualifying, race
+from tabs import circuit, driver, season
 
-TABS = {
-    "Overview": overview.render,
-    "Qualifying": qualifying.render,
-    "Race": race.render,
-}
-
+# Enable on-disk caching for FastF1. This significantly speeds up repeated data
+# access by storing session data locally. The directory will be created if it
+# does not already exist.
+fastf1.Cache.enable_cache("cache")
 
 def main():
-    st.sidebar.title("F1 Dashboard")
-    selection = st.sidebar.radio("Go to", list(TABS.keys()))
+    st.set_page_config(
+        page_title="F1 Dashboard",
+        page_icon="\U0001F3C1",
+        layout="wide",
+    )
 
-    if selection == "Overview":
-        TABS[selection]()
-    else:
-        year = st.sidebar.number_input("Season", value=2023)
-        grand_prix = st.sidebar.text_input("Grand Prix", value="Bahrain")
-        TABS[selection](year, grand_prix)
+    st.sidebar.title("F1 Dashboard")
+
+    tab_driver, tab_season, tab_circuit = st.tabs(["Driver", "Season", "Circuit"])
+
+    with tab_driver:
+        driver.render()
+
+    with tab_season:
+        season.render()
+
+    with tab_circuit:
+        circuit.render()
 
 
 if __name__ == "__main__":
