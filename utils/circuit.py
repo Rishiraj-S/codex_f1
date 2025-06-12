@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import Iterable
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
-import fastf1
 import plotly.express as px
+
+from utils.data import load_session
 
 
 @lru_cache(maxsize=32)
@@ -27,11 +29,18 @@ def lap_time_boxplot(circuit: str, years: Iterable[int]):
         Boxplot visualising lap time distribution for each year.
     """
     all_laps = []
-    for year in years:
+
+    def _load(y: int):
         try:
-            session = fastf1.get_session(year, circuit, "R")
-            session.load()  # type: ignore
+            return load_session(y, circuit, "R")
         except Exception:
+            return None
+
+    with ThreadPoolExecutor() as pool:
+        sessions = list(pool.map(_load, years))
+
+    for year, session in zip(years, sessions):
+        if session is None:
             continue
 
         laps = session.laps[["Driver", "LapTime"]].copy()
