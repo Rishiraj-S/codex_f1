@@ -2,7 +2,7 @@
 
 import fastf1
 import streamlit as st
-from tabs import circuit, driver, season
+from tabs import circuit, driver, season, telemetry
 
 # Enable on-disk caching for FastF1. This significantly speeds up repeated data
 # access by storing session data locally. The directory will be created if it
@@ -18,7 +18,12 @@ def main():
 
     st.sidebar.title("F1 Dashboard")
 
-    tab_driver, tab_season, tab_circuit = st.tabs(["Driver", "Season", "Circuit"])
+    tab_driver, tab_season, tab_circuit, tab_telemetry = st.tabs([
+        "Driver",
+        "Season",
+        "Circuit",
+        "Telemetry",
+    ])
 
     with tab_driver:
         driver.render()
@@ -28,6 +33,9 @@ def main():
 
     with tab_circuit:
         circuit.render()
+
+    with tab_telemetry:
+        telemetry.render()
 
 
 if __name__ == "__main__":
