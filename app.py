@@ -18,6 +18,10 @@ def main():
         layout="wide",
     )
 
+    st.sidebar.image(
+        "https://upload.wikimedia.org/wikipedia/commons/3/33/F1.svg",
+        width=150,
+    )
     st.sidebar.title("F1 Dashboard")
 
     tab_driver, tab_season, tab_circuit, tab_telemetry = st.tabs([
