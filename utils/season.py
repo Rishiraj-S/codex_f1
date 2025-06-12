@@ -2,6 +2,8 @@
 
 from functools import lru_cache
 import fastf1
+import pandas as pd
+import plotly.express as px
 
 
 @lru_cache(maxsize=32)
@@ -25,3 +27,45 @@ def load_session(year: int, session: str):
     sess = fastf1.get_session(year, event_name, session)
     sess.load()  # type: ignore
     return sess
+
+
+@lru_cache(maxsize=32)
+def team_points_chart(year: int):
+    """Return a bar chart of total race points for each team in a season.
+
+    Parameters
+    ----------
+    year:
+        Championship year.
+
+    Returns
+    -------
+    plotly.graph_objs.Figure
+        Bar chart showing aggregated team points for the season.
+    """
+    schedule = fastf1.get_event_schedule(year, include_testing=False)
+    events = schedule["EventName"].tolist()
+
+    team_points: dict[str, float] = {}
+
+    for gp in events:
+        session = fastf1.get_session(year, gp, "R")
+        session.load()  # type: ignore
+
+        results = session.results
+        if results is None:
+            continue
+
+        grouped = results.groupby("TeamName")["Points"].sum()
+        for team, pts in grouped.items():
+            team_points[team] = team_points.get(team, 0.0) + float(pts)
+
+    if not team_points:
+        return px.bar()
+
+    df = pd.DataFrame(
+        {"Team": list(team_points.keys()), "Points": list(team_points.values())}
+    ).sort_values("Points", ascending=False)
+
+    fig = px.bar(df, x="Team", y="Points", title=f"{year} Team Points")
+    return fig
