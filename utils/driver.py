@@ -12,6 +12,7 @@ import requests
 import pandas as pd
 import fastf1
 import plotly.express as px
+import streamlit as st
 
 from utils.data import load_session
 
@@ -187,17 +188,19 @@ def driver_metadata(year: int, driver: str) -> dict[str, Any]:
 
     try:
         schedule = fastf1.get_event_schedule(year, include_testing=False)
-        if not schedule.empty:
-            first_event = schedule.iloc[0]["EventName"]
-            session = load_session(year, first_event, "R")
-            results = session.results
-            if results is not None:
-                row = results[results["Abbreviation"] == driver]
-                if not row.empty:
-                    name = row.iloc[0].get("FullName") or row.iloc[0].get("Driver")
-                    team = row.iloc[0].get("TeamName")
     except Exception:
-        pass
+        st.error("Unable to load event schedule. Check network connection.")
+        schedule = None
+
+    if schedule is not None and not schedule.empty:
+        first_event = schedule.iloc[0]["EventName"]
+        session = load_session(year, first_event, "R")
+        results = session.results
+        if results is not None:
+            row = results[results["Abbreviation"] == driver]
+            if not row.empty:
+                name = row.iloc[0].get("FullName") or row.iloc[0].get("Driver")
+                team = row.iloc[0].get("TeamName")
 
     nationality = None
     dob: datetime.date | None = None

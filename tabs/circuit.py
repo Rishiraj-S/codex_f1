@@ -17,7 +17,12 @@ def render() -> None:
     years = list(range(2018, datetime.date.today().year + 1))
     current_year = years[-1]
 
-    schedule = fastf1.get_event_schedule(current_year, include_testing=False)
+    try:
+        schedule = fastf1.get_event_schedule(current_year, include_testing=False)
+    except Exception:
+        st.error("Unable to load event schedule. Check network connection.")
+        return
+
     circuits = schedule["EventName"].tolist()
     circuit = st.selectbox("Circuit", circuits, key="circuit_circuit")
 
