@@ -13,9 +13,11 @@ tabs/            # Individual Streamlit pages (tabs)
 
 ## Running the app
 
-Install the required dependencies and start Streamlit:
+Install the required dependencies from `requirements.txt` and start Streamlit:
 
 ```bash
-pip install fastf1 streamlit
+pip install -r requirements.txt
 streamlit run app.py
 ```
+
+FastF1 caching is enabled by default in `app.py` which stores session data in a local `cache` directory for faster subsequent loads.
