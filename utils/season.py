@@ -3,16 +3,18 @@
 from functools import lru_cache
 import fastf1
 
+from .data import get_session
+
 
 @lru_cache(maxsize=32)
-def load_session(year: int, session: str):
+def load_session(year: int, session_code: str):
     """Return the first event session of a season loaded with FastF1.
 
     Parameters
     ----------
     year:
         The championship year.
-    session:
+    session_code:
         The session identifier such as 'R' for race or 'Q' for qualifying.
 
     Returns
@@ -22,6 +24,6 @@ def load_session(year: int, session: str):
     """
     schedule = fastf1.get_event_schedule(year, include_testing=False)
     event_name = schedule.iloc[0]["EventName"]
-    sess = fastf1.get_session(year, event_name, session)
-    sess.load()  # type: ignore
-    return sess
+    f1_session = get_session(year, event_name, session_code)
+    f1_session.load()  # type: ignore
+    return f1_session
