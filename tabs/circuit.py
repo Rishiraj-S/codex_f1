@@ -19,9 +19,14 @@ def render() -> None:
 
     schedule = fastf1.get_event_schedule(current_year, include_testing=False)
     circuits = schedule["EventName"].tolist()
-    circuit = st.selectbox("Circuit", circuits)
+    circuit = st.selectbox("Circuit", circuits, key="circuit_circuit")
 
-    selected_years = st.multiselect("Years", years, default=[current_year])
+    selected_years = st.multiselect(
+        "Years",
+        years,
+        default=[current_year],
+        key="circuit_years",
+    )
 
     if circuit and selected_years:
         fig = lap_time_boxplot(circuit, tuple(selected_years))
