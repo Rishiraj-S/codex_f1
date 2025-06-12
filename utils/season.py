@@ -1,13 +1,16 @@
 """Season-level utilities."""
 
 from functools import lru_cache
+from concurrent.futures import ThreadPoolExecutor
 import fastf1
 import pandas as pd
 import plotly.express as px
 
+from utils.data import load_session
+
 
 @lru_cache(maxsize=32)
-def load_session(year: int, session: str):
+def load_first_session(year: int, session: str):
     """Return the first event session of a season loaded with FastF1.
 
     Parameters
@@ -48,10 +51,10 @@ def team_points_chart(year: int):
 
     team_points: dict[str, float] = {}
 
-    for gp in events:
-        session = fastf1.get_session(year, gp, "R")
-        session.load()  # type: ignore
+    with ThreadPoolExecutor() as pool:
+        sessions = list(pool.map(lambda gp: load_session(year, gp, "R"), events))
 
+    for session in sessions:
         results = session.results
         if results is None:
             continue

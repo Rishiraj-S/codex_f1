@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from typing import Iterable
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 import fastf1
 import plotly.express as px
+
+from utils.data import load_session
 
 
 def lap_time_chart(year: int, driver: str, races: Iterable[str]):
@@ -27,10 +30,12 @@ def lap_time_chart(year: int, driver: str, races: Iterable[str]):
         Line chart with lap times for the driver coloured by race.
     """
     all_laps = []
-    for gp in races:
-        session = fastf1.get_session(year, gp, "R")
-        session.load()  # type: ignore
+    with ThreadPoolExecutor() as pool:
+        sessions = list(
+            pool.map(lambda gp: load_session(year, gp, "R"), races)
+        )
 
+    for gp, session in zip(races, sessions):
         laps = session.laps.pick_driver(driver)[["LapNumber", "LapTime"]].copy()
         laps["LapTimeSeconds"] = laps["LapTime"].dt.total_seconds()
         laps["Race"] = gp
@@ -72,8 +77,7 @@ def race_summary(year: int, grand_prix: str, driver: str) -> str:
         A single paragraph in Markdown describing the race.
     """
 
-    session = fastf1.get_session(year, grand_prix, "R")
-    session.load()  # type: ignore
+    session = load_session(year, grand_prix, "R")
 
     laps = session.laps.pick_driver(driver)
     if laps.empty:
