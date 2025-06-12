@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 
 import fastf1
+import requests
 import streamlit as st
 
 from utils.driver import lap_time_chart
@@ -33,8 +34,8 @@ def render() -> None:
 
     try:
         schedule = fastf1.get_event_schedule(year, include_testing=False)
-    except Exception:
-        st.error("Unable to load event schedule. Check network connection.")
+    except (fastf1.FastF1Error, requests.RequestException) as err:
+        st.warning(f"Failed to load event schedule: {err}")
         return
 
     events = schedule["EventName"].tolist()

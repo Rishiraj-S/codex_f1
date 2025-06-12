@@ -8,8 +8,13 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 import plotly.express as px
+import fastf1
+import requests
+import logging
 
 from utils.data import load_session
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=32)
@@ -33,7 +38,8 @@ def lap_time_boxplot(circuit: str, years: Iterable[int]):
     def _load(y: int):
         try:
             return load_session(y, circuit, "R")
-        except Exception:
+        except (fastf1.FastF1Error, requests.RequestException) as err:
+            logger.warning("Failed to load session %s %s: %s", circuit, y, err)
             return None
 
     with ThreadPoolExecutor() as pool:
