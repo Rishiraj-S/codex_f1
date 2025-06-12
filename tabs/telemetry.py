@@ -29,7 +29,12 @@ def render() -> None:
         key="telemetry_year",
     )
 
-    schedule = fastf1.get_event_schedule(year, include_testing=False)
+    try:
+        schedule = fastf1.get_event_schedule(year, include_testing=False)
+    except Exception:
+        st.error("Unable to load event schedule. Check network connection.")
+        return
+
     races = schedule["EventName"].tolist()
     race = st.selectbox("Race", races, key="telemetry_race")
 

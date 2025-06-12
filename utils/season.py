@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import fastf1
 import pandas as pd
 import plotly.express as px
+import streamlit as st
 
 from utils.data import load_session
 
@@ -25,7 +26,12 @@ def load_first_session(year: int, session: str):
     fastf1.core.Session
         The loaded FastF1 session instance.
     """
-    schedule = fastf1.get_event_schedule(year, include_testing=False)
+    try:
+        schedule = fastf1.get_event_schedule(year, include_testing=False)
+    except Exception:
+        st.error("Unable to load event schedule. Check network connection.")
+        return None
+
     event_name = schedule.iloc[0]["EventName"]
     sess = fastf1.get_session(year, event_name, session)
     sess.load()  # type: ignore
@@ -46,7 +52,12 @@ def team_points_chart(year: int):
     plotly.graph_objs.Figure
         Bar chart showing aggregated team points for the season.
     """
-    schedule = fastf1.get_event_schedule(year, include_testing=False)
+    try:
+        schedule = fastf1.get_event_schedule(year, include_testing=False)
+    except Exception:
+        st.error("Unable to load event schedule. Check network connection.")
+        return px.bar()
+
     events = schedule["EventName"].tolist()
 
     team_points: dict[str, float] = {}

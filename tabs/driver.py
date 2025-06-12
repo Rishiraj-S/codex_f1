@@ -31,7 +31,12 @@ def render() -> None:
         key="driver_year",
     )
 
-    schedule = fastf1.get_event_schedule(year, include_testing=False)
+    try:
+        schedule = fastf1.get_event_schedule(year, include_testing=False)
+    except Exception:
+        st.error("Unable to load event schedule. Check network connection.")
+        return
+
     events = schedule["EventName"].tolist()
 
     drivers = _get_drivers(year, events[0]) if events else []
