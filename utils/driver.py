@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, Any
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
+import datetime
+
+import requests
 
 import pandas as pd
 import fastf1
@@ -122,3 +126,140 @@ def race_summary(year: int, grand_prix: str, driver: str) -> str:
     )
 
     return summary
+
+
+_FALLBACK_DRIVERS: dict[str, dict[str, str]] = {
+    "VER": {
+        "name": "Max Verstappen",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Max_Verstappen_2017_Malaysia_2.jpg",
+        "dob": "1997-09-30",
+        "nationality": "Dutch",
+        "team": "Red Bull Racing",
+    },
+    "HAM": {
+        "name": "Lewis Hamilton",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/2/27/Lewis_Hamilton_2016_Malaysia_podium_1.jpg",
+        "dob": "1985-01-07",
+        "nationality": "British",
+        "team": "Mercedes",
+    },
+    "ALO": {
+        "name": "Fernando Alonso",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/6/62/Fernando_Alonso_2016_Malaysia_podium_1.jpg",
+        "dob": "1981-07-29",
+        "nationality": "Spanish",
+        "team": "Aston Martin",
+    },
+    "LEC": {
+        "name": "Charles Leclerc",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/9/9e/F1_2019_Monaco_GP_Sunday_QP_%2847019031094%29_%28cropped%29.jpg",
+        "dob": "1997-10-16",
+        "nationality": "Monegasque",
+        "team": "Ferrari",
+    },
+}
+
+
+@lru_cache(maxsize=32)
+def driver_metadata(year: int, driver: str) -> dict[str, Any]:
+    """Return basic metadata for a driver in a given season.
+
+    The function attempts to gather data using FastF1 and external services.
+    If that fails (for example in an offline environment) a small internal
+    dictionary is used as a fallback.
+
+    Parameters
+    ----------
+    year:
+        Championship year.
+    driver:
+        Driver abbreviation such as ``'VER'`` or ``'HAM'``.
+
+    Returns
+    -------
+    dict[str, Any]
+        Dictionary containing ``name``, ``image``, ``age``, ``nationality`` and
+        ``team`` keys. Values may be ``None`` if unavailable.
+    """
+
+    name = None
+    team = None
+
+    try:
+        schedule = fastf1.get_event_schedule(year, include_testing=False)
+        if not schedule.empty:
+            first_event = schedule.iloc[0]["EventName"]
+            session = load_session(year, first_event, "R")
+            results = session.results
+            if results is not None:
+                row = results[results["Abbreviation"] == driver]
+                if not row.empty:
+                    name = row.iloc[0].get("FullName") or row.iloc[0].get("Driver")
+                    team = row.iloc[0].get("TeamName")
+    except Exception:
+        pass
+
+    nationality = None
+    dob: datetime.date | None = None
+    image = None
+
+    try:
+        resp = requests.get(
+            f"https://ergast.com/api/f1/drivers/{driver}.json?limit=1",
+            timeout=5,
+        )
+        if resp.ok:
+            data = resp.json()
+            drv = data["MRData"]["DriverTable"]["Drivers"][0]
+            nationality = drv.get("nationality")
+            dob_str = drv.get("dateOfBirth")
+            if dob_str:
+                dob = datetime.datetime.strptime(dob_str, "%Y-%m-%d").date()
+            if name is None:
+                given = drv.get("givenName", "")
+                family = drv.get("familyName", "")
+                name = (given + " " + family).strip()
+    except Exception:
+        pass
+
+    if name and image is None:
+        wiki_name = name.replace(" ", "_")
+        try:
+            resp = requests.get(
+                f"https://en.wikipedia.org/api/rest_v1/page/summary/{wiki_name}",
+                timeout=5,
+            )
+            if resp.ok:
+                data = resp.json()
+                image = data.get("thumbnail", {}).get("source")
+        except Exception:
+            pass
+
+    if dob is not None:
+        age = (datetime.date(year, 12, 31) - dob).days // 365
+    else:
+        age = None
+
+    # Apply fallback data for missing fields
+    fallback = _FALLBACK_DRIVERS.get(driver.upper())
+    if fallback:
+        if name is None:
+            name = fallback["name"]
+        if image is None:
+            image = fallback["image"]
+        if nationality is None:
+            nationality = fallback["nationality"]
+        if team is None:
+            team = fallback["team"]
+        if age is None and fallback.get("dob"):
+            dob = datetime.datetime.strptime(fallback["dob"], "%Y-%m-%d").date()
+            age = (datetime.date(year, 12, 31) - dob).days // 365
+
+    return {
+        "name": name,
+        "image": image,
+        "age": age,
+        "nationality": nationality,
+        "team": team,
+    }
+
