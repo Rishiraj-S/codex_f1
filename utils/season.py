@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import fastf1
 import pandas as pd
 import plotly.express as px
+import requests
 import streamlit as st
 
 from utils.data import load_session
@@ -28,8 +29,8 @@ def load_first_session(year: int, session: str):
     """
     try:
         schedule = fastf1.get_event_schedule(year, include_testing=False)
-    except Exception:
-        st.error("Unable to load event schedule. Check network connection.")
+    except (fastf1.FastF1Error, requests.RequestException) as err:
+        st.warning(f"Failed to load event schedule: {err}")
         return None
 
     event_name = schedule.iloc[0]["EventName"]
@@ -54,8 +55,8 @@ def team_points_chart(year: int):
     """
     try:
         schedule = fastf1.get_event_schedule(year, include_testing=False)
-    except Exception:
-        st.error("Unable to load event schedule. Check network connection.")
+    except (fastf1.FastF1Error, requests.RequestException) as err:
+        st.warning(f"Failed to load event schedule: {err}")
         return px.bar()
 
     events = schedule["EventName"].tolist()

@@ -8,11 +8,14 @@ from functools import lru_cache
 import datetime
 
 import requests
+import logging
 
 import pandas as pd
 import fastf1
 import plotly.express as px
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 from utils.data import load_session
 
@@ -188,8 +191,8 @@ def driver_metadata(year: int, driver: str) -> dict[str, Any]:
 
     try:
         schedule = fastf1.get_event_schedule(year, include_testing=False)
-    except Exception:
-        st.error("Unable to load event schedule. Check network connection.")
+    except (fastf1.FastF1Error, requests.RequestException) as err:
+        st.warning(f"Failed to load event schedule: {err}")
         schedule = None
 
     if schedule is not None and not schedule.empty:
@@ -222,8 +225,8 @@ def driver_metadata(year: int, driver: str) -> dict[str, Any]:
                 given = drv.get("givenName", "")
                 family = drv.get("familyName", "")
                 name = (given + " " + family).strip()
-    except Exception:
-        pass
+    except requests.RequestException as err:
+        st.warning(f"Failed to query Ergast API: {err}")
 
     if name and image is None:
         wiki_name = name.replace(" ", "_")
@@ -235,8 +238,8 @@ def driver_metadata(year: int, driver: str) -> dict[str, Any]:
             if resp.ok:
                 data = resp.json()
                 image = data.get("thumbnail", {}).get("source")
-        except Exception:
-            pass
+        except requests.RequestException as err:
+            st.warning(f"Failed to fetch image from Wikipedia: {err}")
 
     if dob is not None:
         age = (datetime.date(year, 12, 31) - dob).days // 365
